@@ -142,7 +142,10 @@ async function encryptIdeas(arr,pwd){
   const key=await deriveKey(pwd,saltB64);
   const iv=crypto.getRandomValues(new Uint8Array(12));
   const ctBuf=await crypto.subtle.encrypt({name:"AES-GCM",iv},key,new TextEncoder().encode(JSON.stringify({manual:arr})));
-  const ct=btoa(String.fromCharCode.apply(null,new Uint8Array(ctBuf)));
+  const ctBytes=new Uint8Array(ctBuf);
+  const combined=new Uint8Array(12+ctBytes.length);
+  combined.set(iv,0);combined.set(ctBytes,12);
+  const ct=btoa(String.fromCharCode.apply(null,combined));
   return {iv:saltB64,ct};
 }
 async function unlock(){
@@ -166,7 +169,7 @@ function b64d(s){return decodeURIComponent(escape(atob(s)));}
 function todayStr(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
 function nowStr(){const d=new Date();return todayStr()+" "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");}
 function allIdeas(){return IDEAS.concat(MANUAL).sort((a,b)=>(b.ref_dt||"").localeCompare(a.ref_dt||""));}
-const IDEA_API="https://api.github.com/repos/god-hu/workbench/contents"+(location.pathname.includes("/pc/")?"/pc/ideas.json":"/ideas.json");
+const IDEA_API="https://api.github.com/repos/god-hu/workbench/contents/ideas.json";
 async function loadIdeas(){
   if(!PWD)return;
   try{
